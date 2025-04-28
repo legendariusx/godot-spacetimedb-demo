@@ -68,16 +68,20 @@ func connect_to_database(base_url: String, database_name: String, connection_id:
 	# var light_mode = false # Example
 	# if light_mode:
 	#	 query_params += "&light=true"
+	
+	# set token based on platform
+	# Web uses query param for compatibility reasons
+	# other platforms use preferred Authorization header
+	if OS.get_name() == "Web":
+		query_params += "&token=" + _token
+	else:
+		var auth_header := "Authorization: Bearer " + _token
+		_websocket.handshake_headers = [auth_header]
 
 	_target_url = ws_url_base + query_params
 
 	print_log("SpacetimeDBConnection: Attempting to connect to: " + _target_url)
-
-	var auth_header := "Authorization: Bearer " + _token
-	# --- Remove Compression Header ---
-	# _websocket.handshake_headers = [auth_header, compression_header] # OLD
-	_websocket.handshake_headers = [auth_header] # ONLY Auth header needed now
-
+	
 	_websocket.supported_protocols = [BSATN_PROTOCOL]
 
 	var err := _websocket.connect_to_url(_target_url)
