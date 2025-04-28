@@ -15,8 +15,12 @@ func _exit_tree() -> void:
 	_on_reset()
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept"):
+	if event.is_action_pressed("ui_accept") and input.has_focus():
 		_on_button_pressed()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_accept"):
+		input.grab_focus()
 	elif event.is_action_pressed("ui_cancel"):
 		input.release_focus()
 

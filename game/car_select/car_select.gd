@@ -62,11 +62,18 @@ func _on_name_input_text_changed(text: String) -> void:
 	if name_input.text.ends_with("\n"):
 		name_input.text = name_input.text.replace("\n", "")
 
+func _on_loaded():
+	$LabelLoading.visible = false
+	$Name.visible =  true
+	$HBoxContainer.visible = true
+
 func _on_connected():
 	connection_status.text = CONNECTION_STATUS_LABEL % "Online"
+	_on_loaded()
 
 func _on_connection_error():
 	connection_status.text = CONNECTION_STATUS_LABEL % "Error"
+	_on_loaded()
 
 func _on_disconnected():
 	connection_status.text = CONNECTION_STATUS_LABEL % "Disconnected"

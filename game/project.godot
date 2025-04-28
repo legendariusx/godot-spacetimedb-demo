@@ -21,6 +21,10 @@ SpacetimeDB="*res://addons/SpacetimeDB/Core/SpacetimeDBClient.gd"
 UserState="*res://state/user_state.gd"
 GameState="*res://state/game_state.gd"
 
+[display]
+
+window/size/mode=2
+
 [dotnet]
 
 project/assembly_name="TurboFlop"

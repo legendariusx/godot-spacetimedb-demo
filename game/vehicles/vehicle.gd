@@ -22,6 +22,10 @@ var owner_name: String = ""
 var is_owner := true
 var car_type := "MINIVAN"
 
+var is_accelerating := false
+var is_reversing := false
+var is_steering := false
+
 func set_owner_data(new_owner_identity: PackedByteArray, u_is_owner: bool, u_owner_name: String):
 	owner_identity = new_owner_identity
 	is_owner = u_is_owner
@@ -49,7 +53,7 @@ func _physics_process(delta: float):
 	
 	var fwd_mps := (linear_velocity * transform.basis).x
 
-	if is_owner:
+	if is_owner and is_steering:
 		_steer_target = Input.get_axis(&"turn_right", &"turn_left")
 		_steer_target *= STEER_LIMIT
 
@@ -67,7 +71,7 @@ func _physics_process(delta: float):
 			Input.start_joy_vibration(joypad, 0.0, 0.5, 0.1)
 
 	# Automatically accelerate when using touch controls (reversing overrides acceleration).
-	if is_owner and (DisplayServer.is_touchscreen_available() or Input.is_action_pressed(&"accelerate")):
+	if is_owner and (DisplayServer.is_touchscreen_available() or is_accelerating):
 		# Increase engine force at low speeds to make the initial acceleration faster.
 		var speed := linear_velocity.length()
 		if speed < 5.0 and not is_zero_approx(speed):
@@ -81,7 +85,7 @@ func _physics_process(delta: float):
 	else:
 		engine_force = 0.0
 
-	if is_owner and Input.is_action_pressed(&"reverse"):
+	if is_owner and is_reversing:
 		# Increase engine force at low speeds to make the initial reversing faster.
 		var speed := linear_velocity.length()
 		if speed < 5.0 and not is_zero_approx(speed):
@@ -95,3 +99,23 @@ func _physics_process(delta: float):
 	steering = move_toward(steering, _steer_target, STEER_SPEED * delta)
 
 	previous_speed = linear_velocity.length()
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed(&"accelerate"):
+		is_accelerating = true
+	elif event.is_action_released(&"accelerate"):
+		is_accelerating = false
+		
+	if event.is_action_pressed(&"reverse"):
+		is_reversing = true
+	elif event.is_action_released(&"reverse"):
+		is_reversing = false
+	
+	if event.is_action_pressed("turn_left") or event.is_action_pressed("turn_right"):
+		is_steering = true
+	elif event.is_action_released("turn_left") and not Input.is_action_pressed("turn_right"):
+		is_steering = false
+		_steer_target = 0
+	elif event.is_action_released("turn_right") and not Input.is_action_pressed("turn_left"):
+		is_steering = false
+		_steer_target = 0
