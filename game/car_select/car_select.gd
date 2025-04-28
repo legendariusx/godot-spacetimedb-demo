@@ -2,7 +2,9 @@ extends Control
 
 var town: Node3D = null
 
+const CONNECTION_STATUS_LABEL = "Connection Staus: %s"
 @onready var name_input: LineEdit = $Name/NameInput
+@onready var connection_status: Label = $ConnectionStatus
 
 func _ready():
 	# Automatically focus the first item for gamepad accessibility.
@@ -10,6 +12,12 @@ func _ready():
 	if not GameState.current_user:
 		await GameState.current_user_upated
 	name_input.text = GameState.current_user.name
+	if SpacetimeDB.is_connected_db():
+		_on_connected()
+	else:
+		SpacetimeDB.connected.connect(_on_connected)
+	SpacetimeDB.connection_error.connect(_on_connection_error)
+	SpacetimeDB.disconnected.connect(_on_disconnected)
 
 func _process(_delta: float):
 	if Input.is_action_just_pressed(&"back"):
@@ -29,7 +37,6 @@ func _load_scene(car_scene: PackedScene):
 	get_parent().add_child(town)
 	hide()
 
-
 func _on_back_pressed():
 	if is_instance_valid(town):
 		# Currently in the town, go back to main menu.
@@ -45,10 +52,8 @@ func _on_back_pressed():
 func _on_mini_van_pressed():
 	_load_scene(preload("res://vehicles/car_base.tscn"))
 
-
 func _on_trailer_truck_pressed():
 	_load_scene(preload("res://vehicles/trailer_truck.tscn"))
-
 
 func _on_tow_truck_pressed():
 	_load_scene(preload("res://vehicles/tow_truck.tscn"))
@@ -56,3 +61,12 @@ func _on_tow_truck_pressed():
 func _on_name_input_text_changed(text: String) -> void:
 	if name_input.text.ends_with("\n"):
 		name_input.text = name_input.text.replace("\n", "")
+
+func _on_connected():
+	connection_status.text = CONNECTION_STATUS_LABEL % "Online"
+
+func _on_connection_error():
+	connection_status.text = CONNECTION_STATUS_LABEL % "Error"
+
+func _on_disconnected():
+	connection_status.text = CONNECTION_STATUS_LABEL % "Disconnected"
