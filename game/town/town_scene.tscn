@@ -1,4 +1,4 @@
-[gd_scene load_steps=44 format=3 uid="uid://cx6yatslyw530"]
+[gd_scene load_steps=45 format=3 uid="uid://cx6yatslyw530"]
 
 [ext_resource type="Script" uid="uid://iltjrni77ucd" path="res://town/town_scene.gd" id="1_w44mb"]
 [ext_resource type="PackedScene" uid="uid://dfdgytsvtqxwv" path="res://town/truck_town.glb" id="1_x0dmm"]
@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://b2g4dq0w72e68" path="res://town/materials/grass.webp" id="4_cymw0"]
 [ext_resource type="Material" uid="uid://bdjiubscxkdn6" path="res://town/materials/cement.tres" id="5_83ty7"]
 [ext_resource type="PackedScene" uid="uid://c5tdnyckdin2d" path="res://ui/chat.tscn" id="6_clgdk"]
+[ext_resource type="PackedScene" uid="uid://bf3c8w5qn4p1j" path="res://ui/players.tscn" id="7_pxdqy"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_2k12y"]
 sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
@@ -583,5 +584,7 @@ offset_right = -450.0
 offset_bottom = -21.0
 
 [node name="CarContainer" type="Node3D" parent="."]
+
+[node name="Players" parent="." instance=ExtResource("7_pxdqy")]
 
 [connection signal="pressed" from="Spedometer" to="Spedometer" method="_on_spedometer_pressed"]

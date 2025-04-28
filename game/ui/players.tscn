@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3 uid="uid://bf3c8w5qn4p1j"]
+
+[ext_resource type="Script" uid="uid://doi534wpgjdsd" path="res://ui/players.gd" id="1_r1gtu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r1gtu"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.168627, 0.168627, 0.168627, 0.596078)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="Players" type="Control"]
+layout_mode = 3
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+grow_horizontal = 0
+script = ExtResource("1_r1gtu")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -237.0
+offset_top = 26.0
+offset_right = -26.0
+offset_bottom = 237.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_r1gtu")
+
+[node name="Players" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
