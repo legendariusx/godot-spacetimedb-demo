@@ -10,20 +10,21 @@ func _ready() -> void:
 	add_child(player_data_state)
 	player_data_state.update.connect(_on_player_data_update)
 	UserState.update.connect(_on_user_update)
+	get_window().focus_entered.connect(_on_window_focus_entered)
+	get_window().focus_exited.connect(_on_window_focus_exited)
 
 func _exit_tree() -> void:
 	player_data_state.reset()
-
-func _notification(what: int) -> void:
-	match what:
-		NOTIFICATION_APPLICATION_FOCUS_OUT:
-			var tween = get_tree().create_tween()
-			tween.tween_method(func(v): AudioServer.set_bus_volume_db(0, v), 0, -80, 0.5)
-			tween.tween_callback(AudioServer.set_bus_mute.bind(0, true))
-		NOTIFICATION_APPLICATION_FOCUS_IN:
-			var tween = get_tree().create_tween()
-			tween.tween_callback(AudioServer.set_bus_mute.bind(0, false))
-			tween.tween_method(func(v): AudioServer.set_bus_volume_db(0, v), -80, 0, 0.5)
+			
+func _on_window_focus_entered():
+	var tween = get_tree().create_tween()
+	tween.tween_callback(AudioServer.set_bus_mute.bind(0, false))
+	tween.tween_method(func(v): AudioServer.set_bus_volume_db(0, v), -80, 0, 0.5)
+	
+func _on_window_focus_exited():
+	var tween = get_tree().create_tween()
+	tween.tween_method(func(v): AudioServer.set_bus_volume_db(0, v), 0, -80, 0.5)
+	tween.tween_callback(AudioServer.set_bus_mute.bind(0, true))
 
 func create_new_vehicle(user: User, data: PlayerData):
 	var new_vehicle := get_vehicle_scene(data.car_type).instantiate()
