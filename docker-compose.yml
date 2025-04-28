@@ -1,0 +1,20 @@
+version: '3.4'
+services:
+    game:
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - 8400:80
+        volumes:
+            - ./html:/usr/share/nginx/html
+        depends_on:
+            - spacetimedb
+    spacetimedb:
+        image: clockworklabs/spacetime:latest
+        restart: unless-stopped
+        user: "1000:1000"
+        ports:
+            - 8401:3000
+        volumes:
+            - ./spacetime_data:/home/spacetime/.local/share/spacetime/data
+        command: ["start"]

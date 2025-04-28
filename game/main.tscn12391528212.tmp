@@ -1,0 +1,82 @@
+[gd_scene load_steps=8 format=3 uid="uid://bxix06n4xew4h"]
+
+[ext_resource type="Script" uid="uid://f04ooclnegcr" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://jvk6ou7i2d4s" path="res://addons/SpacetimeDB/GodotHelpers/RowReceiver.gd" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://3jgnt1wumyo4" path="res://schema/message.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://3e7qg1888mv5" path="res://schema/user.gd" id="4_1bvp3"]
+[ext_resource type="PackedScene" uid="uid://bwyevcynowbo3" path="res://buggy1.FBX" id="5_lquwl"]
+[ext_resource type="Script" uid="uid://dfkhyljlytfdm" path="res://node_3d.gd" id="6_7mycd"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_ig7tw"]
+font_size = 25
+
+[node name="Node3D" type="Node3D"]
+
+[node name="UI" type="Control" parent="." node_paths=PackedStringArray("message_receiver", "user_receiver")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -435.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ig7tw")
+message_receiver = NodePath("MessageReceiver")
+user_receiver = NodePath("Receiver [user]")
+
+[node name="VBoxContainer" type="ScrollContainer" parent="UI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 202.0
+offset_top = 164.0
+offset_right = -179.0
+offset_bottom = 164.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="UI/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Quick Messaging Service"
+label_settings = SubResource("LabelSettings_ig7tw")
+
+[node name="Messages" type="VBoxContainer" parent="UI/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SendMessage" type="HBoxContainer" parent="UI/VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Input" type="TextEdit" parent="UI/VBoxContainer/VBoxContainer/SendMessage"]
+custom_minimum_size = Vector2(250, 35)
+layout_mode = 2
+placeholder_text = "Message"
+
+[node name="Button" type="Button" parent="UI/VBoxContainer/VBoxContainer/SendMessage"]
+layout_mode = 2
+text = "Send"
+
+[node name="MessageReceiver" type="Node" parent="UI"]
+script = ExtResource("2_0xm2m")
+data_to_receive = ExtResource("3_h2yge")
+
+[node name="Receiver [user]" type="Node" parent="UI"]
+script = ExtResource("2_0xm2m")
+data_to_receive = ExtResource("4_1bvp3")
+
+[node name="buggy1" parent="." instance=ExtResource("5_lquwl")]
+transform = Transform3D(-0.866025, 0, -0.5, 0, 1, 0, 0.5, 0, -0.866025, 0, 0, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+
+[node name="Node3D" type="Node3D" parent="."]
+script = ExtResource("6_7mycd")
+
+[node name="Camera3D" type="Camera3D" parent="Node3D"]
+transform = Transform3D(1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 3.68755, 10.5997, 23.5158)
+
+[connection signal="text_changed" from="UI/VBoxContainer/VBoxContainer/SendMessage/Input" to="UI" method="_on_input_text_changed"]
+[connection signal="pressed" from="UI/VBoxContainer/VBoxContainer/SendMessage/Button" to="UI" method="_on_button_pressed"]

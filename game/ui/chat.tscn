@@ -1,0 +1,67 @@
+[gd_scene load_steps=3 format=3 uid="uid://c5tdnyckdin2d"]
+
+[ext_resource type="Script" uid="uid://f04ooclnegcr" path="res://ui/chat.gd" id="1_4l3cp"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_clgdk"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.169245, 0.169245, 0.169245, 0.596078)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+expand_margin_left = 5.0
+expand_margin_top = 5.0
+expand_margin_right = 5.0
+expand_margin_bottom = 5.0
+
+[node name="Chat" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 407.0
+offset_right = 32.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_4l3cp")
+
+[node name="Container" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -223.0
+offset_right = 679.0
+grow_vertical = 0
+alignment = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Container"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_clgdk")
+
+[node name="Messages" type="VBoxContainer" parent="Container/ScrollContainer"]
+layout_mode = 2
+
+[node name="SendMessage" type="HBoxContainer" parent="Container"]
+layout_mode = 2
+
+[node name="Input" type="LineEdit" parent="Container/SendMessage"]
+custom_minimum_size = Vector2(250, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Message"
+max_length = 50
+
+[node name="Button" type="Button" parent="Container/SendMessage"]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+text = "Send"
+
+[connection signal="text_changed" from="Container/SendMessage/Input" to="." method="_on_input_text_changed"]
+[connection signal="pressed" from="Container/SendMessage/Button" to="." method="_on_button_pressed"]

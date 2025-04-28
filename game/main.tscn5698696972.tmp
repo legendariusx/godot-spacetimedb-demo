@@ -1,0 +1,67 @@
+[gd_scene load_steps=6 format=3 uid="uid://bxix06n4xew4h"]
+
+[ext_resource type="Script" uid="uid://f04ooclnegcr" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://jvk6ou7i2d4s" path="res://addons/SpacetimeDB/GodotHelpers/RowReceiver.gd" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://3jgnt1wumyo4" path="res://schema/message.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://3e7qg1888mv5" path="res://schema/user.gd" id="4_1bvp3"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_ig7tw"]
+font_size = 25
+
+[node name="UI" type="Control" node_paths=PackedStringArray("message_receiver", "user_receiver")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ig7tw")
+message_receiver = NodePath("MessageReceiver")
+user_receiver = NodePath("Receiver [user]")
+
+[node name="VBoxContainer" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Quick Messaging Service"
+label_settings = SubResource("LabelSettings_ig7tw")
+
+[node name="Messages" type="VBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="SendMessage" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Input" type="TextEdit" parent="VBoxContainer/VBoxContainer/SendMessage"]
+custom_minimum_size = Vector2(250, 35)
+layout_mode = 2
+placeholder_text = "Message"
+
+[node name="Button" type="Button" parent="VBoxContainer/VBoxContainer/SendMessage"]
+layout_mode = 2
+text = "Send"
+
+[node name="Reset" type="Button" parent="VBoxContainer/VBoxContainer/SendMessage"]
+visible = false
+layout_mode = 2
+text = "Reset"
+
+[node name="MessageReceiver" type="Node" parent="."]
+script = ExtResource("2_0xm2m")
+data_to_receive = ExtResource("3_h2yge")
+
+[node name="Receiver [user]" type="Node" parent="."]
+script = ExtResource("2_0xm2m")
+data_to_receive = ExtResource("4_1bvp3")
+
+[connection signal="pressed" from="VBoxContainer/VBoxContainer/SendMessage/Button" to="." method="_on_button_pressed"]
+[connection signal="pressed" from="VBoxContainer/VBoxContainer/SendMessage/Reset" to="." method="_on_reset"]
