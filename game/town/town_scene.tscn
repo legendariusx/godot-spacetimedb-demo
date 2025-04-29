@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://iltjrni77ucd" path="res://town/town_scene.gd" id="1_w44mb"]
 [ext_resource type="PackedScene" uid="uid://dfdgytsvtqxwv" path="res://town/truck_town.glb" id="1_x0dmm"]
-[ext_resource type="Script" path="res://spedometer.gd" id="2"]
+[ext_resource type="Script" uid="uid://isf3aaoiw1vj" path="res://spedometer.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://b2g4dq0w72e68" path="res://town/materials/grass.webp" id="4_cymw0"]
 [ext_resource type="Material" uid="uid://bdjiubscxkdn6" path="res://town/materials/cement.tres" id="5_83ty7"]
 [ext_resource type="PackedScene" uid="uid://c5tdnyckdin2d" path="res://ui/chat.tscn" id="6_clgdk"]

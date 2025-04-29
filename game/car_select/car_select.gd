@@ -2,16 +2,10 @@ extends Control
 
 var town: Node3D = null
 
-const CONNECTION_STATUS_LABEL = "Connection Staus: %s"
 @onready var name_input: LineEdit = $Name/NameInput
-@onready var connection_status: Label = $ConnectionStatus
 
 func _ready():
 	# Automatically focus the first item for gamepad accessibility.
-	$HBoxContainer/MiniVan.grab_focus.call_deferred()
-	if not GameState.current_user:
-		await GameState.current_user_upated
-	name_input.text = GameState.current_user.name
 	if SpacetimeDB.is_connected_db():
 		_on_connected()
 	else:
@@ -41,7 +35,8 @@ func _on_back_pressed():
 	if is_instance_valid(town):
 		# Currently in the town, go back to main menu.
 		town.queue_free()
-		name_input.text = GameState.current_user.name
+		if GameState.current_user:
+			name_input.text = GameState.current_user.name
 		show()
 		# Automatically focus the first item for gamepad accessibility.
 		$HBoxContainer/MiniVan.grab_focus.call_deferred()
@@ -63,17 +58,31 @@ func _on_name_input_text_changed(text: String) -> void:
 		name_input.text = name_input.text.replace("\n", "")
 
 func _on_loaded():
-	$LabelLoading.visible = false
-	$Name.visible =  true
 	$HBoxContainer.visible = true
+	$HBoxContainer/MiniVan.grab_focus.call_deferred()
+	$LabelLoading.visible = false
+	$FailureButtonContainer.visible = false
 
 func _on_connected():
-	connection_status.text = CONNECTION_STATUS_LABEL % "Online"
+	$Name.visible =  true
 	_on_loaded()
+	if not GameState.current_user:
+		await GameState.current_user_upated
+	name_input.text = GameState.current_user.name
 
-func _on_connection_error():
-	connection_status.text = CONNECTION_STATUS_LABEL % "Error"
-	_on_loaded()
+func _on_connection_error(code, reason):
+	$LabelLoading.text = "Connection failed: " + reason
+	$FailureButtonContainer.visible = true
 
 func _on_disconnected():
-	connection_status.text = CONNECTION_STATUS_LABEL % "Disconnected"
+	$LabelLoading.text = "Disconnected"
+	$FailureButtonContainer.visible = true
+
+func _on_retry_button_pressed() -> void:
+	$LabelLoading.text = "Loading..."
+	$FailureButtonContainer.visible = false
+	SpacetimeDB._is_initialized = false
+	SpacetimeDB.initialize_and_connect()
+
+func _on_play_offline_button_pressed() -> void:
+	_on_loaded()
