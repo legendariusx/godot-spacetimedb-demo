@@ -1,7 +1,7 @@
 class_name SpacetimeDBClient extends Node
 
 # --- Configuration ---
-@export var base_url: String = "https://chat.legendarius.net"
+@export var base_url: String = "https://localhost:3000"
 @export var database_name: String = "test" # Example
 @export var schema_path: String = "res://schema"
 @export var auto_connect: bool = true
