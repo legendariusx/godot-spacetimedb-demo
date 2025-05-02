@@ -5,7 +5,11 @@ var town: Node3D = null
 @onready var name_input: LineEdit = $Name/NameInput
 
 func _ready():
-	# Automatically focus the first item for gamepad accessibility.
+	SpacetimeDB.connect_db(
+		"http://localhost:3000",
+		"test",
+		SpacetimeDBConnection.CompressionPreference.NONE
+	)
 	if SpacetimeDB.is_connected_db():
 		_on_connected()
 	else:

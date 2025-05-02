@@ -1,11 +1,14 @@
 extends Resource
 class_name UnsubscribeMultiData
 
-## The request ID of the multi-subscription to unsubscribe from.
+## Client request ID used during the original multi-subscription.
 @export var request_id: int # u32
 
-func _init(p_request_id: int = 0):
+## Identifier of the multi-query being unsubscribed from (as a Resource).
+@export var query_id: QueryIdData
+
+func _init(p_request_id: int = 0, p_query_id_resource: QueryIdData = null):
 	request_id = p_request_id
-	# Add metadata for correct BSATN integer serialization
+	query_id = p_query_id_resource if p_query_id_resource != null else QueryIdData.new(p_request_id)
 	set_meta("bsatn_type_request_id", "u32")
 	pass

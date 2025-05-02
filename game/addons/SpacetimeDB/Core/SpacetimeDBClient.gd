@@ -1,16 +1,19 @@
 class_name SpacetimeDBClient extends Node
 
 # --- Configuration ---
-@export var base_url: String = "https://localhost:3000"
-@export var database_name: String = "test" # Example
+@export var base_url: String = "http://127.0.0.1:3000"
+@export var database_name: String = "quickstart-chat" # Example
 @export var schema_path: String = "res://schema"
-@export var auto_connect: bool = true
+@export var auto_connect: bool = false
 @export var auto_request_token: bool = true
 @export var token_save_path: String = "user://spacetimedb_token.dat" # Use a more specific name
-@export var one_time_token: bool = false
-@export var compression: SpacetimeDBConnection.CompressionPreference;
-@export var debug_mode: bool = false;
-@export var current_subscriptions: Dictionary[int, PackedStringArray]
+@export var one_time_token:bool = false
+@export var compression:SpacetimeDBConnection.CompressionPreference;
+@export var debug_mode:bool = true;
+@export var current_subscriptions:Dictionary[int, PackedStringArray]
+
+var pending_subscriptions:Dictionary[int, PackedStringArray]
+
 # --- Components ---
 var _connection: SpacetimeDBConnection
 var _deserializer: BSATNDeserializer
@@ -164,10 +167,11 @@ func _on_websocket_message_received(bsatn_bytes: PackedByteArray):
 	if not _deserializer: return # Should not happen if initialized
 
 	var message_resource: Resource = _deserializer.parse_packet(bsatn_bytes)
-
+	
 	if _deserializer.has_error():
 		printerr("SpacetimeDBClient: Failed to parse BSATN packet: ", _deserializer.get_last_error())
 		return
+
 	if message_resource == null:
 		# Parsing might have returned null without setting error (e.g., unknown type)
 		# Parser should ideally always set an error in this case.
@@ -179,12 +183,30 @@ func _on_websocket_message_received(bsatn_bytes: PackedByteArray):
 		print_log("SpacetimeDBClient: Processing Initial Subscription (Req ID: %d)" % initial_sub.request_id)
 		_local_db.apply_database_update(initial_sub.database_update)
 		emit_signal("database_initialized")
+		
+	elif message_resource is SubscribeMultiAppliedData:
+		var initial_sub: SubscribeMultiAppliedData = message_resource
+		print_log("SpacetimeDBClient: Processing Initial Subscription (Req ID: %d)" % initial_sub.request_id)
+		_local_db.apply_database_update(initial_sub.database_update)
+		if pending_subscriptions.has(initial_sub.query_id.id):
+			current_subscriptions[initial_sub.query_id.id] = pending_subscriptions[initial_sub.query_id.id]
+			pending_subscriptions.erase(initial_sub.query_id.id)
+		emit_signal("database_initialized")
+		
+	elif message_resource is UnsubscribeMultiAppliedData:
+		var unsub: UnsubscribeMultiAppliedData = message_resource
+		_local_db.apply_database_update(unsub.database_update)
+		print_log("Unsubscribe: " + str(current_subscriptions[unsub.query_id.id]))
+		if current_subscriptions.has(unsub.query_id.id):
+			current_subscriptions.erase(unsub.query_id.id)
+		
 	elif message_resource is IdentityTokenData:
 		var identity_token: IdentityTokenData = message_resource
 		print_log("SpacetimeDBClient: Received Identity Token.")
 		_local_identity = identity_token
 		emit_signal("identity_received", identity_token)
-	elif message_resource is TransactionUpdateData:
+
+	elif message_resource is TransactionUpdateData: 
 		var tx_update: TransactionUpdateData = message_resource
 		#print_log("SpacetimeDBClient: Processing Transaction Update (Reducer: %s, Req ID: %d)" % [tx_update.reducer_call.reducer_name, tx_update.reducer_call.request_id])
 		# Apply changes to local DB only if committed
@@ -233,50 +255,7 @@ func get_local_database() -> LocalDatabase:
 	
 func get_local_identity() -> IdentityTokenData:
 	return _local_identity
-
-#WARNING Can be deprecated
-func subscribe_json(queries: PackedStringArray) -> int:
-	if not is_connected_db():
-		printerr("SpacetimeDBClient: Cannot subscribe, not connected.")
-		return -1 # Indicate error
-
-	# Generate a request ID (u32 range)
-	var request_id := randi() & 0xFFFFFFFF
-
-	# Construct the JSON message structure for Subscribe
-	var subscribe_payload = {
-		"query_strings": queries,
-		"request_id": request_id
-	}
-	var client_message = { "Subscribe": subscribe_payload }
-	var json_string := JSON.stringify(client_message)
-
-	print_log("SpacetimeDBClient: Sending subscription request via WebSocket (JSON), Req ID: %d" % request_id)
-	# print_log("SpacetimeDBClient: Queries: ", queries) # Optional debug
-
-	# Send the JSON string as text over the WebSocket
-	if _connection and _connection._websocket: # Basic check
-		var err = _connection._websocket.send_text(json_string)
-		if err != OK:
-			printerr("SpacetimeDBClient: Error sending Subscribe JSON message: ", err)
-			return -1 # Indicate error
-		else:
-			print_log("SpacetimeDBClient: Subscribe request sent successfully.")
-			return request_id # Return the ID on success
-	else:
-		printerr("SpacetimeDBClient: Internal error - WebSocket peer not available in connection.")
-		return -1
-
-func get_properly_formatting(args: Dictionary) -> Dictionary:
-	for i in args:
-		match typeof(args[i]):
-			TYPE_VECTOR2 : args[i] = [args[i].x, args[i].y]
-			TYPE_VECTOR3 : args[i] = [args[i].x, args[i].y, args[i].z]
-			TYPE_PACKED_BYTE_ARRAY: args[i] = PackedByteArray(args[i])
-			_: args[i] = args[i]
-	return args
-
-
+	
 func subscribe(queries: PackedStringArray) -> int:
 	if not is_connected_db():
 		printerr("SpacetimeDBClient: Cannot subscribe_bin, not connected.")
@@ -286,10 +265,12 @@ func subscribe(queries: PackedStringArray) -> int:
 	var request_id := randi() & 0xFFFFFFFF # Ensure positive u32 range
 	# 2. Create the correct payload Resource
 	var payload_data := SubscribeMultiData.new(queries, request_id)
+	
+	#print("! ",payload_data.query_id.id)
 
 	# 3. Serialize the complete ClientMessage using the universal function
 	var message_bytes := _serializer.serialize_client_message(
-		BSATNSerializer.CLIENT_MSG_VARIANT_TAG_SUBSCRIBE,
+		BSATNSerializer.CLIENT_MSG_VARIANT_TAG_SUBSCRIBE_MULTI,
 		payload_data 
 	)
 
@@ -299,13 +280,13 @@ func subscribe(queries: PackedStringArray) -> int:
 
 	# 4. Send the binary message via WebSocket
 	if _connection and _connection._websocket:
-		var err := _connection._websocket.send(message_bytes)
+		var err := _connection.send_bytes(message_bytes)
 		if err != OK:
 			printerr("SpacetimeDBClient: Error sending SubscribeMulti BSATN message: %s" % error_string(err))
 			return -1 # Indicate error
 		else:
 			print_log("SpacetimeDBClient: SubscribeMulti request sent successfully (BSATN), Req ID: %d" % request_id)
-			current_subscriptions[request_id] = queries
+			pending_subscriptions[request_id] = queries
 			return request_id # Return the ID on success
 	else:
 		printerr("SpacetimeDBClient: Internal error - WebSocket peer not available in connection.")
@@ -317,6 +298,7 @@ func unsubscribe(id:int) -> bool:
 		printerr("SpacetimeDBClient: Cannot subscribe_bin, not connected.")
 		return false # Indicate error
 		
+	
 	var payload_data := UnsubscribeMultiData.new(id)
 	
 	var message_bytes := _serializer.serialize_client_message(
@@ -330,13 +312,13 @@ func unsubscribe(id:int) -> bool:
 
 	# 4. Send the binary message via WebSocket
 	if _connection and _connection._websocket:
-		var err := _connection._websocket.send(message_bytes)
+		var err := _connection.send_bytes(message_bytes)
 		if err != OK:
 			printerr("SpacetimeDBClient: Error sending SubscribeMulti BSATN message: %s" % error_string(err))
 			return false # Indicate error
 		else:
 			print_log("SpacetimeDBClient: UnsubscribeMulti request sent successfully (BSATN), Req ID: %d" % id)
-			current_subscriptions.erase(id)
+			#current_subscriptions.erase(id)
 			return true # Return the ID on success
 	else:
 		printerr("SpacetimeDBClient: Internal error - WebSocket peer not available in connection.")
@@ -365,63 +347,16 @@ func call_reducer(reducer_name: String, args: Array = []) -> int:
 	
 	# Access the internal _websocket peer directly (might need adjustment if _connection API changes)
 	if _connection and _connection._websocket: # Basic check
-		var err = _connection._websocket.send(message_bytes)
+		var err = _connection.send_bytes(message_bytes)
 		if err != OK:
 			print("SpacetimeDBClient: Error sending CallReducer JSON message: ", err)
 			return -1 # Indicate error
+		else:
+			return request_id
 	else:
 		print("SpacetimeDBClient: Internal error - WebSocket peer not available in connection.")
 		return -1
-	return request_id
 
-#WARNING Can be deprecated
-func call_reducer_json(reducer_name: String, args: Dictionary, notify_on_done: bool = true) -> int:
-	if not is_connected_db():
-		#print_logerr("SpacetimeDBClient: Cannot call reducer, not connected.")
-		return -1 # Indicate error
-
-	# Generate a request ID (ensure it's u32 range if needed, but randi is fine for now)
-	var request_id := randi() & 0xFFFFFFFF # Ensure positive u32 range
-
-	# Determine flags based on notify_on_done
-	# 0 = FullUpdate (default, notify caller even if no relevant subscription)
-	# 1 = NoSuccessNotify (don't notify caller on success unless subscribed)
-	var flags := 0 if notify_on_done else 1
-
-	# Construct the JSON message structure expected by the server
-	# IMPORTANT: The 'args' field here expects a *string* containing JSON,
-	# matching the structure from your original code.
-	# If the server expects args as a nested JSON object, adjust accordingly.
-	
-	var call_reducer_payload = {
-		"reducer": reducer_name,
-		"args": JSON.stringify(get_properly_formatting(args)), # Stringify the arguments dictionary
-		"request_id": request_id,
-		"flags": flags
-	}
-
-	var client_message = { "CallReducer": call_reducer_payload }
-	var json_string := JSON.stringify(client_message)
-
-	#print_log("SpacetimeDBClient: Calling reducer '%s' via WebSocket (JSON), Req ID: %d" % [reducer_name, request_id])
-
-	# Send the JSON string as text over the WebSocket
-	# Access the internal _websocket peer directly (might need adjustment if _connection API changes)
-	if _connection and _connection._websocket: # Basic check
-		var err = _connection._websocket.send_text(json_string)
-		if err != OK:
-			#print_logerr("SpacetimeDBClient: Error sending CallReducer JSON message: ", err)
-			return -1 # Indicate error
-		else:
-			return request_id # Return the ID on success
-	else:
-		#print_logerr("SpacetimeDBClient: Internal error - WebSocket peer not available in connection.")
-		return -1
-		
-# Waits asynchronously for a TransactionUpdate with a specific request ID.
-# Returns the TransactionUpdateData or null if timed out.
-
-#WARNING Not sure about this
 func wait_for_reducer_response(request_id_to_match: int, timeout_seconds: float = 10.0) -> TransactionUpdateData:
 	if request_id_to_match < 0:
 		return null
@@ -435,6 +370,7 @@ func wait_for_reducer_response(request_id_to_match: int, timeout_seconds: float 
 		if _check_reducer_response(received_signal, request_id_to_match):
 			signal_result = received_signal
 			break
+
 	if signal_result == null:
 		printerr("SpacetimeDBClient: Timeout waiting for response for Req ID: %d" % request_id_to_match)
 		#i realy need it here if i already await?

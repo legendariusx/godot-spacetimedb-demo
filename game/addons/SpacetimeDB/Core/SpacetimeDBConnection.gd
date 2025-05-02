@@ -13,10 +13,14 @@ const BSATN_PROTOCOL = "v1.bsatn.spacetimedb"
 enum CompressionPreference { NONE = 0, BROTLI = 1, GZIP = 2 }
 var preferred_compression: CompressionPreference = CompressionPreference.NONE # Default to None
 
+var _total_bytes_send := 0
+var _total_bytes_received := 0
+
 signal connected
 signal disconnected
 signal connection_error(code: int, reason: String)
-signal message_received(data: PackedByteArray) # Always BSATN
+signal message_received(data: PackedByteArray) 
+signal total_bytes(sended: int, received: int)
 
 func _init(compression:int, debug_mode:bool):
 	preferred_compression = compression
@@ -34,6 +38,13 @@ func set_token(token: String):
 func set_compression_preference(preference: CompressionPreference):
 	self.preferred_compression = preference
 
+func send_bytes(bytes:PackedByteArray) -> Error:
+	var err := _websocket.send(bytes)
+	if err == OK:
+		_total_bytes_send += bytes.size()
+	total_bytes.emit(_total_bytes_send, _total_bytes_received)
+	return err;
+	
 func connect_to_database(base_url: String, database_name: String, connection_id: String, compression:CompressionPreference): # Added connection_id
 	if _is_connected or _connection_requested:
 		print_log("SpacetimeDBConnection: Already connected or connecting.")
@@ -68,20 +79,17 @@ func connect_to_database(base_url: String, database_name: String, connection_id:
 	# var light_mode = false # Example
 	# if light_mode:
 	#	 query_params += "&light=true"
-	
-	# set token based on platform
-	# Web uses query param for compatibility reasons
-	# other platforms use preferred Authorization header
+
 	if OS.get_name() == "Web":
 		query_params += "&token=" + _token
 	else:
 		var auth_header := "Authorization: Bearer " + _token
-		_websocket.handshake_headers = [auth_header]
+		_websocket.handshake_headers = [auth_header] 
 
 	_target_url = ws_url_base + query_params
 
 	print_log("SpacetimeDBConnection: Attempting to connect to: " + _target_url)
-	
+
 	_websocket.supported_protocols = [BSATN_PROTOCOL]
 
 	var err := _websocket.connect_to_url(_target_url)
@@ -103,27 +111,7 @@ func disconnect_from_server(code: int = 1000, reason: String = "Client initiated
 
 func is_connected_db() -> bool:
 	return _is_connected
-
-func send_bsatn_message(client_message_resource: Resource):
-	if not _is_connected:
-		printerr("SpacetimeDBConnection: Cannot send message, not connected.")
-		return FAILED
-
-	# TODO: Need a BSATN *Serializer* to convert the Resource back to bytes
-	# For now, this function is a placeholder.
-	printerr("SpacetimeDBConnection: BSATN Serialization not implemented yet!")
-	return FAILED
-	# var bsatn_parser = BSATNParser.new() # Or a dedicated serializer class
-	# var bytes : PackedByteArray = bsatn_parser.serialize_client_message(client_message_resource)
-	# if bsatn_parser.has_error():
-	#	 printerr("SpacetimeDBConnection: Failed to serialize message: ", bsatn_parser.get_last_error())
-	#	 return FAILED
-	# var err = _websocket.send(bytes)
-	# if err != OK:
-	#	 printerr("SpacetimeDBConnection: Error sending BSATN message: ", err)
-	#	 return err
-	# return OK
-
+	
 func _process(delta: float) -> void:
 	if _websocket == null: return
 
@@ -141,8 +129,10 @@ func _process(delta: float) -> void:
 			# Process incoming packets
 			while _websocket.get_available_packet_count() > 0:
 				var packet_bytes := _websocket.get_packet()
+				_total_bytes_received += packet_bytes.size()
 				# We only support BSATN now
 				emit_signal("message_received", packet_bytes)
+				total_bytes.emit(_total_bytes_send, _total_bytes_received)
 
 		WebSocketPeer.STATE_CONNECTING:
 			# Still trying to connect

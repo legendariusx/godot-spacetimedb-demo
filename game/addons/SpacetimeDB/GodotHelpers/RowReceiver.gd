@@ -29,6 +29,7 @@ func _ready() -> void:
 	else:
 		push_error("No data schema. Node path: ", get_path())
 		return;
+	
 	await get_parent().ready
 	
 	var data = SpacetimeDB.get_local_database().get_all_rows(data_to_receive.get_meta("table_name"))

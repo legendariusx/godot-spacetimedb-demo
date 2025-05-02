@@ -7,6 +7,7 @@ func _ready() -> void:
 	if not GameState.identity:
 		await GameState.identity_updated
 	UserState.update.connect(_on_user_updated)
+	update_users()
 
 func _exit_tree() -> void:
 	_on_reset()
@@ -17,7 +18,7 @@ func add_title():
 	new_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	players_container.add_child(new_message)
 
-func _on_user_updated(update: User):
+func update_users():
 	_on_reset()
 	add_title()
 	var current_user: User = UserState.find_by_pk(GameState.identity)
@@ -30,6 +31,9 @@ func _on_user_updated(update: User):
 		if user.identity == GameState.identity:
 			new_message.text += " (you)"
 		players_container.add_child(new_message)
+
+func _on_user_updated(update: User):
+	update_users()
 
 func _on_reset() -> void:
 	for child in players_container.get_children():

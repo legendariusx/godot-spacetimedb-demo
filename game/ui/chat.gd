@@ -10,6 +10,7 @@ func _ready() -> void:
 	_on_reset()
 	message_state.update.connect(_on_state_update)
 	UserState.update.connect(_on_state_update)
+	update_messages()
 
 func _exit_tree() -> void:
 	_on_reset()
